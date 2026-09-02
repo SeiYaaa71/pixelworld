@@ -1,14 +1,33 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Grille Collaborative</title>
-  <link rel="stylesheet" href="css/style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Canevas partagé</title>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <h1>Grille de Pixels</h1>
-  
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="js/app.js"></script>
+
+  <canvas id="board"></canvas>
+
+  <div class="readout">
+    <span id="coords">—</span> · <b id="zoom">1×</b>
+  </div>
+
+  <div class="banner" id="connection" hidden></div>
+
+  <div class="dock">
+    <div class="swatches" id="swatches" role="group" aria-label="Couleurs"></div>
+    <div class="cooldown">
+      <div class="status" id="status">Chargement</div>
+      <div class="cooldown-track">
+        <div class="cooldown-fill" id="cooldown-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>
