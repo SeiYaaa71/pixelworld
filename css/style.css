@@ -1,0 +1,264 @@
+/* ==========================================================================
+   style.css — binôme 2, branche feat/ui-interaction
+   Portée : canevas, panneau de coordonnées, dock de couleurs, cooldown.
+   Ne pas styler ici les écrans appartenant aux autres binômes (auth, chat…).
+   ========================================================================== */
+
+:root {
+  --bg:         #16171b;
+  --surface:    #212329;
+  --surface-hi: #2b2e36;
+  --line:       #33363f;
+  --text:       #e6e7ea;
+  --text-dim:   #8d919c;
+  --accent:     #5b8dd9;
+  --warn:       #d98b3f;
+
+  --dock-radius: 12px;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+/* ---------- Canevas ---------- */
+
+#board {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  image-rendering: pixelated;
+}
+#board.is-panning  { cursor: grabbing; }
+#board.is-cooling  { cursor: not-allowed; }
+
+/* ---------- Coordonnées collées au curseur ---------- */
+
+#cursor-coords {
+  position: fixed;
+  z-index: 20;
+  padding: 3px 7px;
+  background: rgba(12, 13, 16, .82);
+  border-radius: 5px;
+  font: 12px/1 var(--mono);
+  color: var(--text);
+  pointer-events: none;
+  white-space: nowrap;
+  transform: translate(14px, 16px);
+}
+#cursor-coords[hidden] { display: none; }
+
+/* Sur écran tactile il n'y a pas de survol : le panneau fixe suffit. */
+@media (hover: none) {
+  #cursor-coords { display: none !important; }
+}
+
+/* ---------- Panneau fixe, haut gauche ---------- */
+
+.hud {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+  display: flex;
+  gap: 16px;
+  padding: 8px 14px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.hud-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font: 13px/1.4 var(--mono);
+  color: var(--text-dim);
+}
+.hud-item b {
+  font-weight: 500;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Dock de couleurs, bas ---------- */
+
+.dock {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  z-index: 10;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: calc(100vw - 24px);
+  padding: 10px 14px;
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--dock-radius);
+  backdrop-filter: blur(8px);
+}
+
+.dock-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+}
+
+/* Raccourcis de palette */
+
+.swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 52vw;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform .08s ease;
+}
+.swatch:hover { transform: translateY(-2px); }
+.swatch[aria-pressed="true"] {
+  outline: 2px solid var(--text);
+  outline-offset: 2px;
+}
+.swatch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Sélecteur libre : on masque le rendu natif et on garde la pastille */
+
+.picker {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  flex: none;
+}
+.picker input[type="color"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  opacity: 0;
+  cursor: pointer;
+}
+.picker-face {
+  position: absolute;
+  inset: 0;
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-radius: 8px;
+  pointer-events: none;
+}
+.picker-face::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid rgba(255, 255, 255, .75);
+  border-bottom: 2px solid rgba(255, 255, 255, .75);
+  border-bottom-right-radius: 3px;
+  mix-blend-mode: difference;
+}
+.picker input:focus-visible + .picker-face {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Cooldown */
+
+.cooldown {
+  flex: none;
+  width: 130px;
+}
+.cooldown-label {
+  display: block;
+  margin-bottom: 5px;
+  font: 12px/1 var(--mono);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.cooldown.is-ready .cooldown-label { color: var(--text); }
+
+.cooldown-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--surface-hi);
+  overflow: hidden;
+}
+.cooldown-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 2px;
+  background: var(--warn);
+}
+.cooldown.is-ready .cooldown-fill { background: var(--accent); }
+
+/* Message d'erreur transitoire (refus serveur, hors grille…) */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 92px;
+  z-index: 30;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  background: var(--surface-hi);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text);
+  opacity: 0;
+  transition: opacity .18s ease;
+  pointer-events: none;
+}
+.toast.is-visible { opacity: 1; }
+
+/* ---------- Adaptations ---------- */
+
+@media (max-width: 620px) {
+  .dock {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    transform: none;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .swatches { max-width: 100%; justify-content: center; }
+  .swatch { width: 24px; height: 24px; }
+  .dock-sep { display: none; }
+  .cooldown { width: 100%; }
+  .cooldown-label { text-align: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .swatch, .toast { transition: none; }
+}
