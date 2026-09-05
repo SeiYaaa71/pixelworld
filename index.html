@@ -71,3 +71,45 @@
       render();
     }
     window.addEventListener('resize', resizeCanvas);
+
+    // Mise à jour des pixels
+    function initBoard(imageDataOrUrl) {
+      bufferCtx.fillStyle = '#ffffff';
+      bufferCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+      if (imageDataOrUrl) {
+        if (typeof imageDataOrUrl === 'string') {
+          const img = new Image();
+          img.onload = () => {
+            bufferCtx.drawImage(img, 0, 0, CANVAS_SIZE, CANVAS_SIZE);
+            render();
+          };
+          img.src = imageDataOrUrl;
+        } else if (imageDataOrUrl instanceof ImageData) {
+          bufferCtx.putImageData(imageDataOrUrl, 0, 0);
+        }
+      }
+
+      // Centrage
+      camera.x = (canvas.width - CANVAS_SIZE * camera.zoom) / 2;
+      camera.y = (canvas.height - CANVAS_SIZE * camera.zoom) / 2;
+
+      render();
+    }
+
+    function setPixel(x, y, color) {
+      if (x < 0 || x >= CANVAS_SIZE || y < 0 || y >= CANVAS_SIZE) return;
+      bufferCtx.fillStyle = color;
+      bufferCtx.fillRect(x, y, 1, 1);
+      render();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(camera.x, camera.y);
+      ctx.scale(camera.zoom, camera.zoom);
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(buffer, 0, 0);
+      ctx.restore();
+    }
