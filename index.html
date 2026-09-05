@@ -113,3 +113,49 @@
       ctx.drawImage(buffer, 0, 0);
       ctx.restore();
     }
+
+    //  Déplacement et Zoom de la souris
+    let isDragging = false;
+    let startX = 0, startY = 0;
+
+    canvas.addEventListener('mousedown', (e) => {
+      if (e.button === 0) {
+        isDragging = true;
+        startX = e.clientX - camera.x;
+        startY = e.clientY - camera.y;
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        camera.x = e.clientX - startX;
+        camera.y = e.clientY - startY;
+        render();
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      const newZoom = Math.min(Math.max(camera.zoom * zoomFactor, camera.minZoom), camera.maxZoom);
+
+      const mouseX = e.clientX;
+      const mouseY = e.clientY;
+
+      camera.x = mouseX - (mouseX - camera.x) * (newZoom / camera.zoom);
+      camera.y = mouseY - (mouseY - camera.y) * (newZoom / camera.zoom);
+      camera.zoom = newZoom;
+
+      render();
+    }, { passive: false });
+
+    
+    resizeCanvas();
+    initBoard();
+  </script>
+</body>
+</html>
