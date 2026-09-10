@@ -49,3 +49,38 @@ function loadScoresStorage() {
     }
   }
 }
+
+// Écrit l'intégralité du tableau binaire sur le disque
+function persistBoardToDisk() {
+  fs.writeFile(BOARD_FILE_PATH, Buffer.from(pixelBoardData.buffer), (err) => {
+    if (err) console.error('Erreur sauvegarde board :', err);
+  });
+}
+ 
+// Écrit le dictionnaire des scores dans le fichier JSON
+function persistScoresToDisk() {
+  fs.writeFile(SCORES_FILE_PATH, JSON.stringify(playerScores, null, 2), (err) => {
+    if (err) console.error('Erreur sauvegarde scores :', err);
+  });
+}
+ 
+// Extrait et trie les 10 meilleurs scores
+function computeTopLeaderboard() {
+  return Object.entries(playerScores)
+    .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+    .slice(0, 10)
+    .map(([username, pixelCount]) => ({ username, count: pixelCount }));
+}
+ 
+// Récupère l'adresse IPv4 locale de la machine hôte
+function detectLocalIpAddress() {
+  const networkInterfaces = os.networkInterfaces();
+  for (const interfaceName of Object.keys(networkInterfaces)) {
+    for (const iface of networkInterfaces[interfaceName]) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+  return 'localhost';
+}
