@@ -96,3 +96,54 @@ export class UI {
             this.hideContextMenu();
         });
     }
+
+    // Construit les pastilles de couleurs standards
+    buildBasePalette() {
+        this.paletteContainer.innerHTML = '';
+        this.basePalette.forEach((hex) => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.backgroundColor = hex;
+            swatch.addEventListener('click', () => {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                this.applyColor(r, g, b);
+            });
+            this.paletteContainer.appendChild(swatch);
+        });
+    }
+
+    // Construit les pastilles de couleurs enregistrées par l'utilisateur
+    buildFavoritePalette() {
+        this.favoriteContainer.innerHTML = '';
+        this.favoriteColors.forEach((hex) => {
+            const swatch = document.createElement('div');
+            swatch.className = 'color-swatch';
+            swatch.style.backgroundColor = hex;
+            swatch.addEventListener('click', () => {
+                const r = parseInt(hex.slice(1, 3), 16);
+                const g = parseInt(hex.slice(3, 5), 16);
+                const b = parseInt(hex.slice(5, 7), 16);
+                this.applyColor(r, g, b);
+            });
+            this.favoriteContainer.appendChild(swatch);
+        });
+    }
+
+    // Récupère la chaîne hexadécimale de la couleur active
+    getCurrentHexColor() {
+        const r = Number(this.sliderR.value);
+        const g = Number(this.sliderG.value);
+        const b = Number(this.sliderB.value);
+        return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    // Synchronise les composants graphiques avec la couleur spécifiée
+    applyColor(red, green, blue) {
+        this.sliderR.value = red;
+        this.sliderG.value = green;
+        this.sliderB.value = blue;
+        this.colorPreview.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
+        this.onColorChange({ r: red, g: green, b: blue });
+    }
