@@ -30,3 +30,27 @@ export class Camera {
       this.y = Math.max(0, Math.min(this.worldSize - visibleHeight, this.y));
     }
   }
+
+  // Déplace les coordonnées de la caméra proportionnellement à l'échelle courante
+  pan(deltaScreenX, deltaScreenY) {
+    this.x -= deltaScreenX / this.scale;
+    this.y -= deltaScreenY / this.scale;
+    this.clamp();
+  }
+ 
+  // Ajuste l'échelle de façon progressive en conservant le curseur comme point pivot
+  zoomAt(mouseScreenX, mouseScreenY, deltaWheel) {
+    const mouseWorldX = this.x + mouseScreenX / this.scale;
+    const mouseWorldY = this.y + mouseScreenY / this.scale;
+ 
+    const zoomFactor = Math.exp(-deltaWheel * 0.0015);
+    const targetScale = Math.min(Math.max(this.scale * zoomFactor, this.minScale), this.maxScale);
+ 
+    if (targetScale !== this.scale) {
+      this.scale = targetScale;
+      this.x = mouseWorldX - mouseScreenX / this.scale;
+      this.y = mouseWorldY - mouseScreenY / this.scale;
+      this.clamp();
+    }
+  }
+}
