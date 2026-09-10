@@ -81,3 +81,9 @@ function handlePlayerLogin() {
     board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
   }
 }
+// Convertit la couleur RGB courante vers son format numérique encodé
+function getEncodedColorValue() {
+  const numericHex = (activeRgbColor.r << 16) | (activeRgbColor.g << 8) | activeRgbColor.b;
+  return numericHex + 1;
+}
+ 
