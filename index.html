@@ -1,39 +1,53 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8">
-  <title>Grille Collaborative</title>
-  <link rel="stylesheet" href="css/style.css">
-  
-  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Canevas partagé - Grille de Pixels</title>
+  <link rel="stylesheet" href="/style.css">
   <style>
     body {
       margin: 0;
       overflow: hidden;
       background-color: #1e1e1e;
+      font-family: sans-serif;
     }
     #board {
       display: block;
-      cursor: grab;
+      cursor: crosshair;
     }
-    #board:active {
+    #board.grabbing {
       cursor: grabbing;
     }
   </style>
 </head>
 <body>
-  <h1>Grille de Pixels</h1>
-  
 
   <canvas id="board"></canvas>
 
+  <!-- Interface Utilisateur -->
+  <div class="readout">
+    <span id="coords">—</span> · <b id="zoom">1×</b>
+  </div>
 
+  <div class="banner" id="connection" hidden></div>
+
+  <div class="dock">
+    <div class="swatches" id="swatches" role="group" aria-label="Couleurs"></div>
+    <div class="cooldown">
+      <div class="status" id="status">Chargement</div>
+      <div class="cooldown-track">
+        <div class="cooldown-fill" id="cooldown-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/app.js"></script>
-
-  
   <script>
-    // Connexion 
+    // Connexion WebSocket
     const socket = io();
 
     socket.on('connect', () => {
@@ -72,7 +86,6 @@
     }
     window.addEventListener('resize', resizeCanvas);
 
-    // Mise à jour des pixels
     function initBoard(imageDataOrUrl) {
       bufferCtx.fillStyle = '#ffffff';
       bufferCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
@@ -90,7 +103,7 @@
         }
       }
 
-      // Centrage
+      // Centrage initial de la grille
       camera.x = (canvas.width - CANVAS_SIZE * camera.zoom) / 2;
       camera.y = (canvas.height - CANVAS_SIZE * camera.zoom) / 2;
 
@@ -112,15 +125,24 @@
       ctx.imageSmoothingEnabled = false;
       ctx.drawImage(buffer, 0, 0);
       ctx.restore();
+
+      // Mise à jour de l'affichage du zoom dans le HUD
+      const zoomEl = document.getElementById('zoom');
+      if (zoomEl) zoomEl.textContent = `${camera.zoom.toFixed(1)}×`;
     }
 
-    //  Déplacement et Zoom de la souris
+    // Déplacement (Clic droit ou Molette enfoncée) et Zoom
     let isDragging = false;
     let startX = 0, startY = 0;
 
+    // Désactive le menu contextuel du clic droit pour permettre le glisser
+    canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
     canvas.addEventListener('mousedown', (e) => {
-      if (e.button === 0) {
+      // Bouton 1 = Molette, Bouton 2 = Clic Droit pour déplacer la caméra
+      if (e.button === 1 || e.button === 2) {
         isDragging = true;
+        canvas.classList.add('grabbing');
         startX = e.clientX - camera.x;
         startY = e.clientY - camera.y;
       }
@@ -132,10 +154,30 @@
         camera.y = e.clientY - startY;
         render();
       }
+
+      // Calcul et affichage des coordonnées X, Y
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      const gridX = Math.floor((mouseX - camera.x) / camera.zoom);
+      const gridY = Math.floor((mouseY - camera.y) / camera.zoom);
+
+      const coordsEl = document.getElementById('coords');
+      if (coordsEl) {
+        if (gridX >= 0 && gridX < CANVAS_SIZE && gridY >= 0 && gridY < CANVAS_SIZE) {
+          coordsEl.textContent = `${gridX}, ${gridY}`;
+        } else {
+          coordsEl.textContent = '—';
+        }
+      }
     });
 
-    window.addEventListener('mouseup', () => {
-      isDragging = false;
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 1 || e.button === 2) {
+        isDragging = false;
+        canvas.classList.remove('grabbing');
+      }
     });
 
     canvas.addEventListener('wheel', (e) => {
@@ -153,7 +195,7 @@
       render();
     }, { passive: false });
 
-    
+    // Lancement
     resizeCanvas();
     initBoard();
   </script>
