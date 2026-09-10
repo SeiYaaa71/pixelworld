@@ -86,4 +86,130 @@ function getEncodedColorValue() {
   const numericHex = (activeRgbColor.r << 16) | (activeRgbColor.g << 8) | activeRgbColor.b;
   return numericHex + 1;
 }
+ // Exécute la pose de pixel ou de forme avec validation de sécurité
+function executeCanvasToolPlacement(targetCell) {
+  if (!currentUsername || !targetCell) return;
  
+  const encodedColor = getEncodedColorValue();
+ 
+  if (currentActiveTool.type === 'pixel') {
+    network.sendSinglePixelPlacement(targetCell.x, targetCell.y, encodedColor, currentUsername);
+    return;
+  }
+ 
+  const targetedCellsList = board.computeShapeCells(targetCell.x, targetCell.y, currentActiveTool);
+  if (targetedCellsList.length === 0) return;
+ 
+  if (!board.evaluateAntiGriefingRatio(targetedCellsList)) {
+    alert('Zone protégée : pour utiliser une forme, plus de 50 % des pixels ciblés doivent être vierges.');
+    return;
+  }
+ 
+  const batchPayload = targetedCellsList.map((cell) => ({
+    x: cell.x,
+    y: cell.y,
+    color: encodedColor
+  }));
+  network.sendBatchPixelPlacement(batchPayload, currentUsername);
+}
+ 
+canvasElement.addEventListener('wheel', (event) => {
+  event.preventDefault();
+  const isTouchpadHorizontalPan = Math.abs(event.deltaX) > Math.abs(event.deltaY) && !event.ctrlKey;
+ 
+  if (isTouchpadHorizontalPan) {
+    camera.x += event.deltaX / camera.scale;
+    camera.clamp();
+  } else {
+    const canvasBounds = canvasElement.getBoundingClientRect();
+    const mouseX = event.clientX - canvasBounds.left;
+    const mouseY = event.clientY - canvasBounds.top;
+    camera.zoomAt(mouseX, mouseY, event.deltaY);
+  }
+  board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
+}, { passive: false });
+ 
+canvasElement.addEventListener('contextmenu', (event) => {
+  event.preventDefault();
+  ui.showContextMenu(event.pageX, event.pageY);
+});
+ 
+canvasElement.addEventListener('mousedown', (event) => {
+  if (event.button === 0) {
+    ui.hideContextMenu();
+    isMouseDragging = true;
+    hasExceededDragThreshold = false;
+    dragOriginScreenX = event.clientX;
+    dragOriginScreenY = event.clientY;
+    mousePressScreenX = event.clientX;
+    mousePressScreenY = event.clientY;
+  }
+});
+ 
+window.addEventListener('mousemove', (event) => {
+  if (event.target === canvasElement) {
+    currentHoveredCell = board.screenToGridCoordinates(event.clientX, event.clientY, camera);
+  } else {
+    currentHoveredCell = null;
+  }
+ 
+  if (!isMouseDragging) {
+    if (currentHoveredCell) {
+      board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
+    }
+    return;
+  }
+ 
+  const distanceMoved = Math.hypot(event.clientX - mousePressScreenX, event.clientY - mousePressScreenY);
+ 
+  if (!hasExceededDragThreshold) {
+    if (distanceMoved > DRAG_MOVE_THRESHOLD) {
+      hasExceededDragThreshold = true;
+      dragOriginScreenX = event.clientX;
+      dragOriginScreenY = event.clientY;
+      canvasElement.style.cursor = 'grabbing';
+    } else {
+      return;
+    }
+  }
+ 
+  const deltaX = event.clientX - dragOriginScreenX;
+  const deltaY = event.clientY - dragOriginScreenY;
+ 
+  camera.pan(deltaX, deltaY);
+ 
+  dragOriginScreenX = event.clientX;
+  dragOriginScreenY = event.clientY;
+ 
+  board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
+});
+ 
+window.addEventListener('mouseup', (event) => {
+  if (!isMouseDragging) return;
+ 
+  const distanceMoved = Math.hypot(event.clientX - mousePressScreenX, event.clientY - mousePressScreenY);
+ 
+  if (!hasExceededDragThreshold && distanceMoved <= DRAG_MOVE_THRESHOLD && event.target === canvasElement) {
+    const clickedCell = board.screenToGridCoordinates(event.clientX, event.clientY, camera);
+    executeCanvasToolPlacement(clickedCell);
+  }
+ 
+  isMouseDragging = false;
+  hasExceededDragThreshold = false;
+  canvasElement.style.cursor = 'default';
+  board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
+});
+ 
+window.addEventListener('mousedown', (event) => {
+  if (!ui.contextMenu.contains(event.target) && event.target !== canvasElement) {
+    ui.hideContextMenu();
+  }
+});
+ 
+btnLoginElement.addEventListener('click', handlePlayerLogin);
+usernameInputElement.addEventListener('keydown', (event) => {
+  if (event.key === 'Enter') handlePlayerLogin();
+});
+ 
+canvasElement.style.cursor = 'default';
+board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
