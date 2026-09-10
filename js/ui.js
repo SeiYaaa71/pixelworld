@@ -147,3 +147,46 @@ export class UI {
         this.colorPreview.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
         this.onColorChange({ r: red, g: green, b: blue });
     }
+
+    // Ouvre le menu contextuel aux coordonnées demandées
+    showContextMenu(cursorPageX, cursorPageY) {
+        const menuWidth = 220;
+        const menuHeight = 360;
+
+        let posX = cursorPageX;
+        let posY = cursorPageY - menuHeight;
+
+        if (posX + menuWidth > window.innerWidth) posX = cursorPageX - menuWidth;
+        if (posY < 0) posY = cursorPageY;
+
+        this.contextMenu.style.left = `${posX}px`;
+        this.contextMenu.style.top = `${posY}px`;
+        this.contextMenu.classList.remove('hidden');
+    }
+
+    // Masque le menu contextuel
+    hideContextMenu() {
+        this.contextMenu.classList.add('hidden');
+    }
+
+    // Remplace la liste ordonnée des meilleurs joueurs
+    updateLeaderboardDisplay(topPlayersList) {
+        this.leaderboardElement.innerHTML = '';
+        topPlayersList.forEach((player) => {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = `${player.username} : <span>${player.count}</span>`;
+            this.leaderboardElement.appendChild(listItem);
+        });
+    }
+
+    // Affiche le nombre de personnes connectées
+    updatePlayerCountDisplay(playerCount) {
+        this.playerCountElement.textContent = playerCount;
+    }
+
+    // Met à jour le libellé d'état du réseau
+    updateNetworkStatus(statusLabel, statusColor) {
+        this.statusElement.textContent = statusLabel;
+        this.statusElement.style.color = statusColor;
+    }
+}
