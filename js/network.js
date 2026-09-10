@@ -30,4 +30,18 @@ export class Network {
     });
   }
  
+  // Transmet le pseudonyme validé au serveur
+  sendUsernameRegistration(username) {
+    this.socket.emit('register_username', username);
+  }
+ 
+  // Émet la modification d'un pixel individuel
+  sendSinglePixelPlacement(gridX, gridY, encodedColor, username) {
+    this.socket.emit('set_pixel', { x: gridX, y: gridY, color: encodedColor, username });
+  }
+ 
+  // Émet un groupe de modifications de pixels
+  sendBatchPixelPlacement(pixelsList, username) {
+    this.socket.emit('set_pixels_batch', { pixels: pixelsList, username });
+  }
 }
