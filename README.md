@@ -54,6 +54,7 @@ pixelworld/
 ├── index.html             # Structure HTML unique
 ├── package.json           # Dépendances et scripts Node.js (ES Modules)
 └── server.js              # Serveur Express & Socket.IO, persistance et logique hôte
+```
 
 ## Architectural Decision Records (ADRs)
 
