@@ -12,27 +12,87 @@
         <p>Statut : <span id="status" class="status">Connexion...</span> | Joueurs : <span id="count">0</span> <span id="admin-badge" class="badge-admin hidden">[HÔTE]</span></p>
     </header>
 
-</body>
+    <div id="admin-panel" class="hidden">
+        <h3>Gestion Joueurs (Admin)</h3>
+        <ul id="admin-user-list"></ul>
+    </div>
 
-<div id="admin-panel" class="hidden">
-    <h3>Gestion Joueurs (Admin)</h3>
-    <ul id="admin-user-list"></ul>
+    <div id="leaderboard">
+        <h3>Classement</h3>
+        <ol id="leaderboard-list"></ol>
+    </div>
+
+    <div id="reference-panel" class="hidden pos-right">
+        <div class="panel-header">
+            <span>Modèle</span>
+            <div class="panel-actions">
+                <button id="btn-toggle-side" type="button" title="Changer de côté">⇄</button>
+                <button id="btn-close-ref" type="button" title="Fermer">✕</button>
+            </div>
+        </div>
+        <img id="reference-image" alt="Référence">
+    </div>
+
+    <main>
+        <canvas id="gameCanvas" width="800" height="800"></canvas>
+    </main>
 </div>
 
-<div id="leaderboard">
-    <h3>Classement</h3>
-    <ol id="leaderboard-list"></ol>
+<div id="color-context-menu" class="context-menu hidden">
+    <div class="menu-row">
+        <div class="color-preview" id="color-preview"></div>
+        <button type="button" id="btn-favorite" title="Ajouter aux favoris">♥</button>
+    </div>
+
+    <div class="rgb-sliders">
+        <label>R <input type="range" id="slider-r" min="0" max="255" value="0"></label>
+        <label>G <input type="range" id="slider-g" min="0" max="255" value="0"></label>
+        <label>B <input type="range" id="slider-b" min="0" max="255" value="0"></label>
+    </div>
+
+    <div class="section-title">Palette</div>
+    <div class="color-palette" id="color-palette"></div>
+
+    <div class="section-title">Favoris</div>
+    <div class="color-palette" id="favorite-palette"></div>
+
+    <div class="section-title">Forme rapide</div>
+    <div class="shape-buttons">
+        <button type="button" class="btn-tool active" data-tool="pixel">Pixel</button>
+        <button type="button" class="btn-tool" data-tool="square" data-size="3">Carré 3</button>
+        <button type="button" class="btn-tool" data-tool="square" data-size="5">Carré 5</button>
+        <button type="button" class="btn-tool" data-tool="square" data-size="10">Carré 10</button>
+        <button type="button" class="btn-tool" data-tool="circle" data-size="2">Rond 5</button>
+        <button type="button" class="btn-tool" data-tool="circle" data-size="4">Rond 9</button>
+    </div>
+
+    <div class="section-title">Aide au dessin</div>
+    <label class="file-upload-btn">
+        Importer un modèle
+        <input type="file" id="image-loader" accept="image/*">
+    </label>
+
+    <button type="button" id="btn-select-color">Fermer</button>
 </div>
 
-<div id="reference-panel" class="hidden pos-right">
-    <div class="panel-header">
-        <span>Modèle</span>
-        <div class="panel-actions">
-            <button id="btn-toggle-side" type="button" title="Changer de côté">⇄</button>
-            <button id="btn-close-ref" type="button" title="Fermer">✕</button>
+<div id="login-modal" class="modal-overlay">
+    <div class="modal-card">
+        <h2>Rejoindre la partie</h2>
+        <div id="login-form">
+            <input
+                    type="text"
+                    id="username-input"
+                    placeholder="Pseudo (3 à 20 caractères)"
+                    minlength="3"
+                    maxlength="20"
+                    autocomplete="off"
+            />
+            <button type="button" id="btn-login">Entrer</button>
         </div>
     </div>
-    <img id="reference-image" alt="Référence">
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body>
 </html>
