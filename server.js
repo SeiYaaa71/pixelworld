@@ -182,6 +182,8 @@ io.on('connection', (socket) => {
 const PORT = 3000;
 server.listen(PORT, '0.0.0.0', () => {
   const hostIp = detectLocalIpAddress();
+  const Iphost = "10.6.0.126";
   console.log(`Accès local hôte : http://localhost:${PORT}`);
   console.log(`Accès réseau joueurs : http://${hostIp}:${PORT}`);
+  console.log(`Accès réseau joueurs si liens 1 invalides : http://${Iphost}:${PORT}`);
 });
