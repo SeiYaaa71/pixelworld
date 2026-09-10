@@ -87,24 +87,26 @@ function getEncodedColorValue() {
   return numericHex + 1;
 }
  // Exécute la pose de pixel ou de forme avec validation de sécurité
+// Exécute la pose de pixel ou de forme avec confirmation en cas de dépassement du seuil
 function executeCanvasToolPlacement(targetCell) {
   if (!currentUsername || !targetCell) return;
- 
+
   const encodedColor = getEncodedColorValue();
- 
+
   if (currentActiveTool.type === 'pixel') {
     network.sendSinglePixelPlacement(targetCell.x, targetCell.y, encodedColor, currentUsername);
     return;
   }
- 
+
   const targetedCellsList = board.computeShapeCells(targetCell.x, targetCell.y, currentActiveTool);
   if (targetedCellsList.length === 0) return;
- 
+
+  // Si une couleur domine à plus de 50 %, on demande confirmation avant d'écraser
   if (!board.evaluateAntiGriefingRatio(targetedCellsList)) {
-    alert('Zone protégée : pour utiliser une forme, plus de 50 % des pixels ciblés doivent être vierges.');
-    return;
+    const confirmOverwrite = confirm('Attention : cette zone contient un dessin dominant (> 50 %). Veux-tu vraiment l\'écraser ?');
+    if (!confirmOverwrite) return;
   }
- 
+
   const batchPayload = targetedCellsList.map((cell) => ({
     x: cell.x,
     y: cell.y,
