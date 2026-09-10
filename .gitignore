@@ -1,15 +1,23 @@
-# Dépendances Node.js (ne jamais versionner)
+# Dépendances
 node_modules/
+
+# Fichiers de sauvegarde et persistance locale
+board.bin
+scores.json
+
+# Fichiers temporaires et logs npm
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Fichiers de sauvegarde locale de la grille
-canvas.bin
-*.bin
-*scores.json
-# Fichiers générés par les éditeurs et systèmes d'exploitation
+# Fichiers système et éditeurs
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Variables d'environnement éventuelles
+.env
+.env.local
