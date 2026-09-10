@@ -78,14 +78,23 @@ export class Board {
   }
 
     // Vérifie si la zone ciblée contient une majorité absolue de cases vierges
+ // Vérifie qu'aucune couleur existante ne domine strictement la zone ciblée
   evaluateAntiGriefingRatio(targetCells) {
-    let blankCellCount = 0;
+    const colorCounts = new Map();
+
     for (const cell of targetCells) {
-      if (this.pixelBuffer[cell.y * this.gridDimension + cell.x] === 0) {
-        blankCellCount++;
+      const color = this.pixelBuffer[cell.y * this.gridDimension + cell.x];
+      colorCounts.set(color, (colorCounts.get(color) || 0) + 1);
+    }
+
+    const half = targetCells.length / 2;
+    for (const count of colorCounts.values()) {
+      if (count > half) {
+        return false;
       }
     }
-    return (blankCellCount / targetCells.length) > 0.5;
+
+    return true;
   }
  
   // Dessine l'ensemble des éléments visibles dans l'espace caméra
