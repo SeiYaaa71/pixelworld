@@ -13,7 +13,7 @@ const gameContainerElement = document.getElementById('game-container');
  
 const WORLD_PIXEL_SIZE = 4000;
 const GRID_DIMENSION = 400;
-const DRAG_MOVE_THRESHOLD = 12;
+const DRAG_MOVE_THRESHOLD = 40;
  
 let currentUsername = '';
 let activeRgbColor = { r: 0, g: 0, b: 0 };

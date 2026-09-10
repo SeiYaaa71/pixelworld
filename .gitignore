@@ -7,7 +7,7 @@ yarn-error.log*
 # Fichiers de sauvegarde locale de la grille
 canvas.bin
 *.bin
-
+*scores.json
 # Fichiers générés par les éditeurs et systèmes d'exploitation
 .DS_Store
 Thumbs.db
