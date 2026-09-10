@@ -1,11 +1,19 @@
-# Cahier des charges technique - Grille de pixels collaborative (Temps réel)
+# Pixel Board Collaborative (Temps réel)
 
-## 1. Objectif général
+## Description du projet
+
+Application web collaborative en temps réel inspirée de *r/place*. Déployée sur réseau local (LAN), elle permet à plusieurs utilisateurs de dessiner simultanément sur une toile partagée de 1 000 × 1 000 pixels.
+
+---
+
+## Cahier des charges technique
+
+### 1. Objectif général
 Développer une application web collaborative en temps réel (type *r/place*) sur réseau local, permettant à plusieurs utilisateurs de dessiner simultanément sur une toile partagée de 1 000 × 1 000 pixels.
 
 ---
 
-## 2. Spécifications fonctionnelles
+### 2. Spécifications fonctionnelles
 
 * **Toile de dessin :**
   * Dimensions fixes : 1 000 × 1 000 pixels.
@@ -23,18 +31,18 @@ Développer une application web collaborative en temps réel (type *r/place*) su
 
 ---
 
-## 3. Spécifications techniques
+### 3. Spécifications techniques
 
 * **Environnement réseau :** Réseau local (LAN) avec un PC désigné comme serveur hôte.
 * **Stockage en mémoire :** Toile conservée en mémoire vive (RAM) côté serveur (~3 à 4 Mo).
 * **Communication :**
-  * Connexion initiale : téléchargement direct de l'état complet de la grille.
-  * Flux continu : protocole bidirectionnel (WebSockets) pour transmettre les micro-paquets : `(X, Y, Couleur)`.
+  * **Connexion initiale :** Téléchargement direct de l'état complet de la grille.
+  * **Flux continu :** Protocole bidirectionnel (WebSockets) pour transmettre les micro-paquets : `(X, Y, Couleur)`.
 * **Frontend :** Rendu via l'élément HTML5 Canvas pour garantir la fluidité à 1 000 × 1 000.
 
 ---
 
-## 4. Découpage des tâches
+## Découpage des tâches
 
 ### Fonctionnalité 1 : Moteur de rendu et navigation (Client / Frontend)
 
@@ -116,3 +124,25 @@ Développer une application web collaborative en temps réel (type *r/place*) su
 * **Tâche 5.2 : Test de charge et latence**
   * Tester le dessin simultané à 6 personnes pour vérifier la latence (< 200 ms).
   * Tester la coupure brutale et le redémarrage du serveur pour valider la persistance.
+
+---
+
+## Architectural Decision Records (ADRs)
+
+### ADR_001 : Choix de la technologie pour le projet
+
+* **Contexte :**
+  Pour commencer le projet, nous devons établir les technologies utilisées. Le projet étant une application web, il faut choisir un langage maîtrisé par tous les membres. L'utilisation de React JS a été écartée car certains membres ne possédaient pas les connaissances nécessaires. De plus, nous avons décidé de ne pas utiliser SQL car effectuer des requêtes en base à chaque pixel posé serait trop lent ; l'utilisation de WebSockets est plus optimisée pour notre cas d'usage.
+* **Décision :**
+  Utiliser Go, JavaScript, HTML, CSS et WebSockets.
+* **Conséquences :**
+  Le site reste simple, sans framework lourd et sans BDD, ce qui facilite son développement et optimise sa vitesse.
+
+---
+
+## Playbook d'incident
+
+En cas d'erreur trouvée dans le code d'un autre membre ou d'un problème non résolu :
+
+1. Ouvrir et créer une **Issue** sur GitHub afin qu'un autre membre puisse intervenir.
+2. Si l'équipe ne parvient pas à résoudre le problème, solliciter une aide extérieure.
