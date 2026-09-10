@@ -12,3 +12,21 @@ export class Camera {
     this.x = (worldSize - viewportWidth) / 2;
     this.y = (worldSize - viewportHeight) / 2;
   }
+
+  // Empêche le champ de vision de déborder hors des limites définies du monde
+  clamp() {
+    const visibleWidth = this.viewportWidth / this.scale;
+    const visibleHeight = this.viewportHeight / this.scale;
+ 
+    if (visibleWidth >= this.worldSize) {
+      this.x = (this.worldSize - visibleWidth) / 2;
+    } else {
+      this.x = Math.max(0, Math.min(this.worldSize - visibleWidth, this.x));
+    }
+ 
+    if (visibleHeight >= this.worldSize) {
+      this.y = (this.worldSize - visibleHeight) / 2;
+    } else {
+      this.y = Math.max(0, Math.min(this.worldSize - visibleHeight, this.y));
+    }
+  }
