@@ -7,12 +7,6 @@ yarn-error.log*
 # Fichiers de sauvegarde locale de la grille
 canvas.bin
 *.bin
-*.sqlite
-*.db
-
-# Fichiers d'environnement / secrets
-.env
-.env.local
 
 # Fichiers générés par les éditeurs et systèmes d'exploitation
 .DS_Store
