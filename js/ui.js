@@ -35,3 +35,64 @@ export class UI {
         this.buildBasePalette();
         this.buildFavoritePalette();
     }
+
+    // Attache les écouteurs d'événements aux contrôles du menu contextuel
+    setupListeners() {
+        const updateSliders = () => {
+            const redVal = Number(this.sliderR.value);
+            const greenVal = Number(this.sliderG.value);
+            const blueVal = Number(this.sliderB.value);
+            this.applyColor(redVal, greenVal, blueVal);
+        };
+
+        this.sliderR.addEventListener('input', updateSliders);
+        this.sliderG.addEventListener('input', updateSliders);
+        this.sliderB.addEventListener('input', updateSliders);
+
+        this.btnFavorite.addEventListener('click', () => {
+            const hexColor = this.getCurrentHexColor();
+            if (!this.favoriteColors.includes(hexColor)) {
+                this.favoriteColors.push(hexColor);
+                if (this.favoriteColors.length > 5) this.favoriteColors.shift();
+                localStorage.setItem('pixel_favorites', JSON.stringify(this.favoriteColors));
+                this.buildFavoritePalette();
+            }
+        });
+
+        this.toolButtons.forEach((btn) => {
+            btn.addEventListener('click', () => {
+                this.toolButtons.forEach((item) => item.classList.remove('active'));
+                btn.classList.add('active');
+                this.onToolChange({
+                    type: btn.dataset.tool,
+                    size: parseInt(btn.dataset.size || '1', 10)
+                });
+            });
+        });
+
+        this.imageLoader.addEventListener('change', (e) => {
+            const selectedFile = e.target.files[0];
+            if (selectedFile) {
+                const fileReader = new FileReader();
+                fileReader.onload = (event) => {
+                    this.refImage.src = event.target.result;
+                    this.refPanel.classList.remove('hidden');
+                    this.hideContextMenu();
+                };
+                fileReader.readAsDataURL(selectedFile);
+            }
+        });
+
+        this.btnToggleRefSide.addEventListener('click', () => {
+            this.refPanel.classList.toggle('pos-left');
+            this.refPanel.classList.toggle('pos-right');
+        });
+
+        this.btnCloseRefPanel.addEventListener('click', () => {
+            this.refPanel.classList.add('hidden');
+        });
+
+        this.btnCloseContextMenu.addEventListener('click', () => {
+            this.hideContextMenu();
+        });
+    }
