@@ -69,4 +69,15 @@ const network = new Network({
     if (adminModule) adminModule.renderUsersList(connectedUsersList);
   }
 });
- 
+ // Valide la saisie du joueur et débloque le canvas
+function handlePlayerLogin() {
+  const trimmedName = usernameInputElement.value.trim();
+  if (trimmedName.length >= 3 && trimmedName.length <= 20) {
+    currentUsername = trimmedName;
+    network.sendUsernameRegistration(currentUsername);
+    loginModalElement.style.display = 'none';
+    gameContainerElement.classList.remove('blurred');
+    document.body.style.overflow = 'auto';
+    board.render(camera, currentHoveredCell, currentActiveTool, activeRgbColor);
+  }
+}
