@@ -101,7 +101,7 @@ function executeCanvasToolPlacement(targetCell) {
   if (targetedCellsList.length === 0) return;
  
   if (!board.evaluateAntiGriefingRatio(targetedCellsList)) {
-    alert('Zone protégée : pour utiliser une forme, plus de 50 % des pixels ciblés doivent être vierges.');
+    alert('Zone protégée : une couleur dominante occupe déjà plus de 50 % de cet espace.');
     return;
   }
  
