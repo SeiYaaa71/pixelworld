@@ -73,16 +73,31 @@ function computeTopLeaderboard() {
 }
  
 // Récupère l'adresse IPv4 locale de la machine hôte
+// Récupère l'adresse IPv4 locale physique réelle sur Windows en ciblant le sous-réseau actif
 function detectLocalIpAddress() {
   const networkInterfaces = os.networkInterfaces();
-  for (const interfaceName of Object.keys(networkInterfaces)) {
-    for (const iface of networkInterfaces[interfaceName]) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
+  const ignoredPatterns = /(loopback|virtual|wsl|vethernet|vmware|tap|tun|docker)/i;
+  const fallbackCandidates = [];
+
+  for (const [interfaceName, addresses] of Object.entries(networkInterfaces)) {
+    if (ignoredPatterns.test(interfaceName)) continue;
+
+    for (const addressInfo of addresses) {
+      if (addressInfo.family === 'IPv4' && !addressInfo.internal) {
+        // Cible ton sous-réseau exact en priorité
+        if (addressInfo.address.startsWith('10.6.0.')) {
+          return addressInfo.address;
+        }
+        if (addressInfo.address.startsWith('192.168.') || addressInfo.address.startsWith('10.')) {
+          fallbackCandidates.unshift(addressInfo.address);
+        } else {
+          fallbackCandidates.push(addressInfo.address);
+        }
       }
     }
   }
-  return 'localhost';
+
+  return fallbackCandidates[0] || 'localhost';
 }
 
 // Transmet la liste actualisée des joueurs connectés aux administrateurs
@@ -182,8 +197,6 @@ io.on('connection', (socket) => {
 const PORT = 3000;
 server.listen(PORT, '0.0.0.0', () => {
   const hostIp = detectLocalIpAddress();
-  const Iphost = "10.6.0.126";
   console.log(`Accès local hôte : http://localhost:${PORT}`);
   console.log(`Accès réseau joueurs : http://${hostIp}:${PORT}`);
-  console.log(`Accès réseau joueurs si liens 1 invalides : http://${Iphost}:${PORT}`);
 });
