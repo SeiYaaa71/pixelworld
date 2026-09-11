@@ -43,6 +43,19 @@ export class Board {
     }
     return null;
   }
+
+  // Récupère la couleur décomposée en {r, g, b} d'une cellule donnée (ou null si vierge)
+  getPixelRgb(gridX, gridY) {
+    const rawVal = this.pixelBuffer[gridY * this.gridDimension + gridX];
+    if (rawVal === 0) return null;
+
+    const colorVal = rawVal - 1;
+    const r = (colorVal >> 16) & 255;
+    const g = (colorVal >> 8) & 255;
+    const b = colorVal & 255;
+
+    return { r, g, b };
+  }
  
   // Génère la liste des cases couvertes par un outil géométrique
   computeShapeCells(centerGridX, centerGridY, activeTool) {
