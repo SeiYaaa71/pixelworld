@@ -133,6 +133,17 @@ canvasElement.addEventListener('wheel', (event) => {
  
 canvasElement.addEventListener('contextmenu', (event) => {
   event.preventDefault();
+
+  // Détecte la case sous le clic droit
+  const clickedCell = board.screenToGridCoordinates(event.clientX, event.clientY, camera);
+  if (clickedCell) {
+    const cellRgb = board.getPixelRgb(clickedCell.x, clickedCell.y);
+    // Si la case a une couleur, on synchronise les curseurs et la couleur active
+    if (cellRgb) {
+      ui.applyColor(cellRgb.r, cellRgb.g, cellRgb.b);
+    }
+  }
+
   ui.showContextMenu(event.pageX, event.pageY);
 });
  
