@@ -5,17 +5,17 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
- 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
- 
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
- 
+
 app.use('/js', express.static(path.join(__dirname, 'js')));
 app.use('/css', express.static(path.join(__dirname, 'css')));
- 
+
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -24,12 +24,56 @@ const GRID_CELLS = 400;
 const TOTAL_PIXELS = GRID_CELLS * GRID_CELLS;
 const BOARD_FILE_PATH = path.join(__dirname, 'board.bin');
 const SCORES_FILE_PATH = path.join(__dirname, 'scores.json');
- 
+
 const pixelBoardData = new Uint32Array(TOTAL_PIXELS);
 let playerScores = {};
 const bannedIpAddresses = new Set();
 const activeUsersRegistry = new Map();
- 
+
+// Configuration de la limitation anti-spam
+const SPAM_WINDOW_MS = 1000;
+const SPAM_MAX_PIXELS = 15;
+const playerActivity = new Map();
+
+// Émet un message de log exclusivement aux connexions hôtes
+function emitAdminLog(ioInstance, action, username, ip, details = '') {
+  for (const [id, s] of ioInstance.sockets.sockets) {
+    if (s.isHost) {
+      s.emit('admin_log', {
+        time: new Date().toLocaleTimeString(),
+        action,
+        username,
+        ip,
+        details
+      });
+    }
+  }
+}
+
+// Vérifie si un joueur dépasse le quota autorisé de pixels par seconde
+function checkSpamThreshold(socket, pixelCount) {
+  const now = Date.now();
+  let activity = playerActivity.get(socket.id);
+
+  if (!activity || now - activity.startTime > SPAM_WINDOW_MS) {
+    activity = { startTime: now, count: 0 };
+    playerActivity.set(socket.id, activity);
+  }
+
+  activity.count += pixelCount;
+
+  if (activity.count > SPAM_MAX_PIXELS) {
+    const ip = normalizeClientIp(socket.handshake.address);
+    bannedIpAddresses.add(ip);
+    emitAdminLog(io, 'AUTO_BAN_SPAM', socket.username || 'Inconnu', ip, `${activity.count} px/s`);
+    socket.emit('banned', 'Banni automatiquement pour spam.');
+    socket.disconnect(true);
+    return true;
+  }
+
+  return false;
+}
+
 // Charge l'état binaire de la grille depuis le stockage local
 function loadBoardStorage() {
   if (fs.existsSync(BOARD_FILE_PATH)) {
@@ -38,7 +82,7 @@ function loadBoardStorage() {
     pixelBoardData.set(loadedData);
   }
 }
- 
+
 // Charge les totaux de pixels par joueur depuis le fichier JSON
 function loadScoresStorage() {
   if (fs.existsSync(SCORES_FILE_PATH)) {
@@ -56,14 +100,14 @@ function persistBoardToDisk() {
     if (err) console.error('Erreur sauvegarde board :', err);
   });
 }
- 
+
 // Écrit le dictionnaire des scores dans le fichier JSON
 function persistScoresToDisk() {
   fs.writeFile(SCORES_FILE_PATH, JSON.stringify(playerScores, null, 2), (err) => {
     if (err) console.error('Erreur sauvegarde scores :', err);
   });
 }
- 
+
 // Extrait et trie les 10 meilleurs scores
 function computeTopLeaderboard() {
   return Object.entries(playerScores)
@@ -71,7 +115,7 @@ function computeTopLeaderboard() {
     .slice(0, 10)
     .map(([username, pixelCount]) => ({ username, count: pixelCount }));
 }
- 
+
 // Récupère l'adresse IPv4 locale de la machine hôte
 // Récupère l'adresse IPv4 locale physique réelle sur Windows en ciblant le sous-réseau actif
 function detectLocalIpAddress() {
@@ -115,10 +159,10 @@ function broadcastConnectedUsersToAdmins() {
   }));
   io.to('admin_room').emit('admin_user_list', usersPayload);
 }
- 
+
 loadBoardStorage();
 loadScoresStorage();
- 
+
 io.use((socket, next) => {
   const clientIp = normalizeClientIp(socket.handshake.address);
   if (bannedIpAddresses.has(clientIp)) {
@@ -126,31 +170,34 @@ io.use((socket, next) => {
   }
   next();
 });
- 
+
 io.on('connection', (socket) => {
   const clientIp = normalizeClientIp(socket.handshake.address);
   const isHost = clientIp === '127.0.0.1' || clientIp === 'localhost';
- 
+  socket.isHost = isHost;
+
   io.emit('player_count', io.engine.clientsCount);
   socket.emit('init_board', Array.from(pixelBoardData));
   socket.emit('leaderboard_update', computeTopLeaderboard());
   socket.emit('role_assignment', { isHost });
- 
+
   if (isHost) {
     socket.join('admin_room');
     broadcastConnectedUsersToAdmins();
   }
- 
+
   socket.on('register_username', (username) => {
+    socket.username = username;
     activeUsersRegistry.set(socket.id, { username, ip: clientIp });
     broadcastConnectedUsersToAdmins();
   });
- 
+
   socket.on('admin_ban_user', (targetSocketId) => {
     if (!isHost) return;
     const targetUser = activeUsersRegistry.get(targetSocketId);
     if (targetUser) {
       bannedIpAddresses.add(targetUser.ip);
+      emitAdminLog(io, 'MANUAL_BAN', targetUser.username || 'Inconnu', targetUser.ip, 'Banni par l\'hôte');
       const targetSocket = io.sockets.sockets.get(targetSocketId);
       if (targetSocket) {
         targetSocket.emit('banned');
@@ -159,12 +206,17 @@ io.on('connection', (socket) => {
     }
   });
 
-    socket.on('set_pixel', (data) => {
+  socket.on('set_pixel', (data) => {
+    if (!data || !Number.isInteger(data.x) || !Number.isInteger(data.y) || !Number.isInteger(data.color) || !data.username) return;
+    if (checkSpamThreshold(socket, 1)) return;
+
+    // Log de la pose pour l'hôte
+    emitAdminLog(io, 'PIXEL', data.username, socket.handshake.address, `(${data.x}, ${data.y})`);
     const { x, y, color, username } = data;
     if (x >= 0 && x < GRID_CELLS && y >= 0 && y < GRID_CELLS && username) {
       pixelBoardData[y * GRID_CELLS + x] = color;
       playerScores[username] = (playerScores[username] || 0) + 1;
- 
+
       io.emit('pixel_updated', { x, y, color });
       io.emit('leaderboard_update', computeTopLeaderboard());
       persistBoardToDisk();
@@ -173,9 +225,13 @@ io.on('connection', (socket) => {
   });
 
   socket.on('set_pixels_batch', (data) => {
+    if (!data || !Array.isArray(data.pixels) || !data.username) return;
+    if (checkSpamThreshold(socket, data.pixels.length)) return;
+
+    // Log de la pose groupée pour l'hôte
+    emitAdminLog(io, 'BATCH', data.username, socket.handshake.address, `${data.pixels.length} px`);
     const { pixels, username } = data;
-    if (!Array.isArray(pixels) || !username) return;
- 
+
     const validatedPixels = [];
     for (const pixel of pixels) {
       if (pixel.x >= 0 && pixel.x < GRID_CELLS && pixel.y >= 0 && pixel.y < GRID_CELLS) {
@@ -183,7 +239,7 @@ io.on('connection', (socket) => {
         validatedPixels.push(pixel);
       }
     }
- 
+
     if (validatedPixels.length > 0) {
       playerScores[username] = (playerScores[username] || 0) + validatedPixels.length;
       io.emit('pixels_batch_updated', validatedPixels);
@@ -192,14 +248,15 @@ io.on('connection', (socket) => {
       persistScoresToDisk();
     }
   });
- 
+
   socket.on('disconnect', () => {
+    playerActivity.delete(socket.id);
     activeUsersRegistry.delete(socket.id);
     broadcastConnectedUsersToAdmins();
     io.emit('player_count', io.engine.clientsCount);
   });
 });
- 
+
 const PORT = 3000;
 server.listen(PORT, '0.0.0.0', () => {
   const hostIp = detectLocalIpAddress();

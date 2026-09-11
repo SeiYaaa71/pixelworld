@@ -12,6 +12,10 @@ export class Admin {
         this.adminPanelElement.classList.remove('hidden');
     }
 
+    setupLogs() {
+        setupAdminLogs(this.socket);
+    }
+
     // Réécrit la liste des joueurs connectés avec le bouton de bannissement
     renderUsersList(connectedUsersList) {
         this.adminUserListElement.innerHTML = '';
@@ -33,4 +37,29 @@ export class Admin {
             this.adminUserListElement.appendChild(listItem);
         });
     }
+}
+
+// Gère l'affichage des logs en temps réel dans le panneau hôte
+export function setupAdminLogs(socket) {
+    const logListElement = document.getElementById('admin-log-list');
+    if (!logListElement) return;
+
+    socket.on('admin_log', (entry) => {
+        const li = document.createElement('li');
+        const isBan = entry.action.includes('BAN');
+
+        li.innerHTML = `
+      <span class="log-time">[${entry.time}]</span> 
+      <span class="log-user">${entry.username}</span> : 
+      <span class="${isBan ? 'log-ban' : 'log-action'}">${entry.action}</span> 
+      ${entry.details}
+    `;
+
+        logListElement.prepend(li);
+
+        // Conserve les 50 dernières entrées pour éviter de saturer le DOM
+        if (logListElement.children.length > 50) {
+            logListElement.removeChild(logListElement.lastChild);
+        }
+    });
 }
