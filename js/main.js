@@ -65,6 +65,7 @@ const network = new Network({
     if (roleInfo.isHost) {
       adminModule = new Admin(network.socket);
       adminModule.enableAdminPrivileges();
+      adminModule.setupLogs();
     }
   },
   onAdminUsersList: (connectedUsersList) => {
