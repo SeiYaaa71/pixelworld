@@ -8,12 +8,12 @@ export class Board {
     this.cellSize = totalWorldSize / gridDimension;
     this.pixelBuffer = new Uint32Array(gridDimension * gridDimension);
   }
- 
+
   // Injecte un lot de données dans le buffer local
   loadState(pixelArray) {
     this.pixelBuffer.set(pixelArray);
   }
- 
+
   // Modifie la couleur d'une coordonnée spécifique
   setPixel(gridX, gridY, encodedColor) {
     this.pixelBuffer[gridY * this.gridDimension + gridX] = encodedColor;
@@ -25,29 +25,31 @@ export class Board {
       this.pixelBuffer[pixel.y * this.gridDimension + pixel.x] = pixel.color;
     }
   }
- 
+
   // Convertit des coordonnées d'écran en indices de cellule de grille
   screenToGridCoordinates(screenX, screenY, camera) {
     const canvasRect = this.canvas.getBoundingClientRect();
     const relativeX = screenX - canvasRect.left;
     const relativeY = screenY - canvasRect.top;
- 
+
     const worldCoordX = camera.x + relativeX / camera.scale;
     const worldCoordY = camera.y + relativeY / camera.scale;
- 
+
     const cellCol = Math.floor(worldCoordX / this.cellSize);
     const cellRow = Math.floor(worldCoordY / this.cellSize);
- 
+
     if (cellCol >= 0 && cellCol < this.gridDimension && cellRow >= 0 && cellRow < this.gridDimension) {
       return { x: cellCol, y: cellRow };
     }
     return null;
   }
 
-  // Récupère la couleur décomposée en {r, g, b} d'une cellule donnée (ou null si vierge)
+  // Récupère la couleur décomposée en {r, g, b} d'une cellule donnée
   getPixelRgb(gridX, gridY) {
     const rawVal = this.pixelBuffer[gridY * this.gridDimension + gridX];
-    if (rawVal === 0) return null;
+    if (rawVal === 0) {
+      return { r: 255, g: 255, b: 255 };
+    }
 
     const colorVal = rawVal - 1;
     const r = (colorVal >> 16) & 255;
@@ -56,16 +58,17 @@ export class Board {
 
     return { r, g, b };
   }
- 
+
   // Génère la liste des cases couvertes par un outil géométrique
   computeShapeCells(centerGridX, centerGridY, activeTool) {
     const targetCells = [];
     if (activeTool.type === 'pixel') {
       targetCells.push({ x: centerGridX, y: centerGridY });
     } else if (activeTool.type === 'square') {
-      const radiusOffset = Math.floor(activeTool.size / 2);
-      for (let deltaY = -radiusOffset; deltaY <= radiusOffset; deltaY++) {
-        for (let deltaX = -radiusOffset; deltaX <= radiusOffset; deltaX++) {
+      const beforeCenter = Math.floor((activeTool.size - 1) / 2);
+      const afterCenter = activeTool.size - 1 - beforeCenter;
+      for (let deltaY = -beforeCenter; deltaY <= afterCenter; deltaY++) {
+        for (let deltaX = -beforeCenter; deltaX <= afterCenter; deltaX++) {
           const currentX = centerGridX + deltaX;
           const currentY = centerGridY + deltaY;
           if (currentX >= 0 && currentX < this.gridDimension && currentY >= 0 && currentY < this.gridDimension) {
@@ -90,8 +93,8 @@ export class Board {
     return targetCells;
   }
 
-    // Vérifie si la zone ciblée contient une majorité absolue de cases vierges
- // Vérifie qu'aucune couleur existante ne domine strictement la zone ciblée
+  // Vérifie si la zone ciblée contient une majorité absolue de cases vierges
+  // Vérifie qu'aucune couleur existante ne domine strictement la zone ciblée
   evaluateAntiGriefingRatio(targetCells) {
     const colorCounts = new Map();
 
@@ -109,22 +112,36 @@ export class Board {
 
     return true;
   }
- 
+
   // Dessine l'ensemble des éléments visibles dans l'espace caméra
-  render(camera, hoveredCell, activeTool, activeColorRgb) {
+  render(camera, hoveredCell, activeTool, activeColorRgb, overlayImageConfig = null) {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     this.ctx.save();
     this.ctx.scale(camera.scale, camera.scale);
     this.ctx.translate(-camera.x, -camera.y);
- 
+
     this.ctx.fillStyle = '#ffffff';
     this.ctx.fillRect(0, 0, this.worldSize, this.worldSize);
- 
+
+    if (overlayImageConfig && overlayImageConfig.element) {
+      this.ctx.save();
+      this.ctx.imageSmoothingEnabled = false;
+      this.ctx.globalAlpha = overlayImageConfig.opacity;
+      this.ctx.drawImage(
+        overlayImageConfig.element,
+        overlayImageConfig.gridX * this.cellSize,
+        overlayImageConfig.gridY * this.cellSize,
+        overlayImageConfig.gridWidth * this.cellSize,
+        overlayImageConfig.gridHeight * this.cellSize
+      );
+      this.ctx.restore();
+    }
+
     const minCol = Math.max(0, Math.floor(camera.x / this.cellSize));
     const maxCol = Math.min(this.gridDimension, Math.ceil((camera.x + this.canvas.width / camera.scale) / this.cellSize));
     const minRow = Math.max(0, Math.floor(camera.y / this.cellSize));
     const maxRow = Math.min(this.gridDimension, Math.ceil((camera.y + this.canvas.height / camera.scale) / this.cellSize));
- 
+
     for (let row = minRow; row < maxRow; row++) {
       for (let col = minCol; col < maxCol; col++) {
         const storedValue = this.pixelBuffer[row * this.gridDimension + col];
@@ -135,7 +152,7 @@ export class Board {
         }
       }
     }
- 
+
     if (hoveredCell && activeTool.type !== 'pixel') {
       const previewCells = this.computeShapeCells(hoveredCell.x, hoveredCell.y, activeTool);
       this.ctx.fillStyle = `rgba(${activeColorRgb.r}, ${activeColorRgb.g}, ${activeColorRgb.b}, 0.4)`;
@@ -143,7 +160,7 @@ export class Board {
         this.ctx.fillRect(cell.x * this.cellSize, cell.y * this.cellSize, this.cellSize, this.cellSize);
       }
     }
- 
+
     if (camera.scale >= 0.6) {
       this.ctx.strokeStyle = '#e0e0e0';
       this.ctx.lineWidth = 0.5;
@@ -160,11 +177,11 @@ export class Board {
       }
       this.ctx.stroke();
     }
- 
+
     this.ctx.strokeStyle = '#e63946';
     this.ctx.lineWidth = 2 / camera.scale;
     this.ctx.strokeRect(0, 0, this.worldSize, this.worldSize);
- 
+
     this.ctx.restore();
   }
 }

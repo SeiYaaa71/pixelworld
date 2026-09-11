@@ -100,6 +100,12 @@ function detectLocalIpAddress() {
   return fallbackCandidates[0] || 'localhost';
 }
 
+function normalizeClientIp(address) {
+  if (!address) return '';
+  const normalizedAddress = address.replace(/^::ffff:/, '');
+  return normalizedAddress === '::1' ? '127.0.0.1' : normalizedAddress;
+}
+
 // Transmet la liste actualisée des joueurs connectés aux administrateurs
 function broadcastConnectedUsersToAdmins() {
   const usersPayload = Array.from(activeUsersRegistry.entries()).map(([socketId, user]) => ({
@@ -114,7 +120,7 @@ loadBoardStorage();
 loadScoresStorage();
  
 io.use((socket, next) => {
-  const clientIp = socket.handshake.address.replace(/^.*:/, '');
+  const clientIp = normalizeClientIp(socket.handshake.address);
   if (bannedIpAddresses.has(clientIp)) {
     return next(new Error('BANNED'));
   }
@@ -122,8 +128,8 @@ io.use((socket, next) => {
 });
  
 io.on('connection', (socket) => {
-  const clientIp = socket.handshake.address.replace(/^.*:/, '');
-  const isHost = (clientIp === '127.0.0.1' || clientIp === 'localhost' || clientIp === '::1');
+  const clientIp = normalizeClientIp(socket.handshake.address);
+  const isHost = clientIp === '127.0.0.1' || clientIp === 'localhost';
  
   io.emit('player_count', io.engine.clientsCount);
   socket.emit('init_board', Array.from(pixelBoardData));

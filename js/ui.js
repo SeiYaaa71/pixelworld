@@ -26,6 +26,11 @@ export class UI {
         this.playerCountElement = document.getElementById('count');
         this.statusElement = document.getElementById('status');
 
+        this.inputRefOpacity = document.getElementById('ref-opacity');
+        this.inputRefSize = document.getElementById('ref-size');
+        this.inputRefPosX = document.getElementById('ref-pos-x');
+        this.inputRefPosY = document.getElementById('ref-pos-y');
+
         this.basePalette = [
             '#000000', '#ffffff', '#e63946', '#2a9d8f', '#e76f51',
             '#457b9d', '#1d3557', '#f4a261', '#9b5de5', '#55a630'
@@ -38,32 +43,32 @@ export class UI {
     }
 
     // Décode une chaîne brute (Hex ou RVB) en triplet numérique {r, g, b}
-  parseColorString(rawText) {
-    const text = rawText.trim().toLowerCase();
-    const rgbMatch = text.match(/^(?:rgb\s*\(\s*)?(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)?$/);
-    if (rgbMatch) {
-      return {
-        r: Math.min(255, parseInt(rgbMatch[1], 10)),
-        g: Math.min(255, parseInt(rgbMatch[2], 10)),
-        b: Math.min(255, parseInt(rgbMatch[3], 10))
-      };
+    parseColorString(rawText) {
+        const text = rawText.trim().toLowerCase();
+        const rgbMatch = text.match(/^(?:rgb\s*\(\s*)?(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)?$/);
+        if (rgbMatch) {
+            return {
+                r: Math.min(255, parseInt(rgbMatch[1], 10)),
+                g: Math.min(255, parseInt(rgbMatch[2], 10)),
+                b: Math.min(255, parseInt(rgbMatch[3], 10))
+            };
+        }
+        const hexClean = text.replace(/^#/, '');
+        if (/^[0-9a-f]{6}$/.test(hexClean)) {
+            return {
+                r: parseInt(hexClean.slice(0, 2), 16),
+                g: parseInt(hexClean.slice(2, 4), 16),
+                b: parseInt(hexClean.slice(4, 6), 16)
+            };
+        } else if (/^[0-9a-f]{3}$/.test(hexClean)) {
+            return {
+                r: parseInt(hexClean[0] + hexClean[0], 16),
+                g: parseInt(hexClean[1] + hexClean[1], 16),
+                b: parseInt(hexClean[2] + hexClean[2], 16)
+            };
+        }
+        return null;
     }
-    const hexClean = text.replace(/^#/, '');
-    if (/^[0-9a-f]{6}$/.test(hexClean)) {
-      return {
-        r: parseInt(hexClean.slice(0, 2), 16),
-        g: parseInt(hexClean.slice(2, 4), 16),
-        b: parseInt(hexClean.slice(4, 6), 16)
-      };
-    } else if (/^[0-9a-f]{3}$/.test(hexClean)) {
-      return {
-        r: parseInt(hexClean[0] + hexClean[0], 16),
-        g: parseInt(hexClean[1] + hexClean[1], 16),
-        b: parseInt(hexClean[2] + hexClean[2], 16)
-      };
-    }
-    return null;
-  } 
 
     // Attache les écouteurs d'événements aux contrôles du menu contextuel
     setupListeners() {
@@ -79,10 +84,10 @@ export class UI {
         this.sliderB.addEventListener('input', updateSliders);
 
         this.colorHexInput.addEventListener('input', () => {
-        const parsedRgb = this.parseColorString(this.colorHexInput.value);
-        if (parsedRgb) {
-            this.applyColor(parsedRgb.r, parsedRgb.g, parsedRgb.b, false);
-        }
+            const parsedRgb = this.parseColorString(this.colorHexInput.value);
+            if (parsedRgb) {
+                this.applyColor(parsedRgb.r, parsedRgb.g, parsedRgb.b, false);
+            }
         });
 
         this.btnFavorite.addEventListener('click', () => {
@@ -109,20 +114,47 @@ export class UI {
         this.imageLoader.addEventListener('change', (e) => {
             const selectedFile = e.target.files[0];
             if (selectedFile) {
-                const fileReader = new FileReader();
-                fileReader.onload = (event) => {
-                    this.refImage.src = event.target.result;
+                const img = new Image();
+                img.onload = () => {
                     this.refPanel.classList.remove('hidden');
                     this.hideContextMenu();
+                    if (this.onOverlayImageLoaded) {
+                        this.onOverlayImageLoaded(img);
+                    }
                 };
-                fileReader.readAsDataURL(selectedFile);
+                img.src = URL.createObjectURL(selectedFile);
             }
         });
 
-        this.btnToggleRefSide.addEventListener('click', () => {
-            this.refPanel.classList.toggle('pos-left');
-            this.refPanel.classList.toggle('pos-right');
+        const triggerOverlayUpdate = () => {
+            if (this.onOverlayConfigChanged) {
+                this.onOverlayConfigChanged({
+                    opacity: parseFloat(this.inputRefOpacity.value),
+                    gridWidth: parseInt(this.inputRefSize.value, 10),
+                    gridX: parseInt(this.inputRefPosX.value, 10),
+                    gridY: parseInt(this.inputRefPosY.value, 10)
+                });
+            }
+        };
+
+        this.inputRefOpacity.addEventListener('input', triggerOverlayUpdate);
+        this.inputRefSize.addEventListener('input', triggerOverlayUpdate);
+        this.inputRefPosX.addEventListener('input', triggerOverlayUpdate);
+        this.inputRefPosY.addEventListener('input', triggerOverlayUpdate);
+
+        this.btnCloseRefPanel.addEventListener('click', () => {
+            this.refPanel.classList.add('hidden');
+            if (this.onOverlayConfigChanged) {
+                this.onOverlayConfigChanged(null);
+            }
         });
+
+        if (this.btnToggleRefSide) {
+            this.btnToggleRefSide.addEventListener('click', () => {
+                this.refPanel.classList.toggle('pos-left');
+                this.refPanel.classList.toggle('pos-right');
+            });
+        }
 
         this.btnCloseRefPanel.addEventListener('click', () => {
             this.refPanel.classList.add('hidden');
@@ -182,7 +214,7 @@ export class UI {
         this.sliderB.value = blue;
         this.colorPreview.style.backgroundColor = `rgb(${red}, ${green}, ${blue})`;
         if (updateTextInput) {
-        this.colorHexInput.value = '#' + ((1 << 24) + (red << 16) + (green << 8) + blue).toString(16).slice(1).toUpperCase();
+            this.colorHexInput.value = '#' + ((1 << 24) + (red << 16) + (green << 8) + blue).toString(16).slice(1).toUpperCase();
         }
         this.onColorChange({ r: red, g: green, b: blue });
     }
